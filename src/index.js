@@ -7,9 +7,11 @@ const ms = require('ms')
 const wait = require('co-wait')
 
 function * backupDb (dbHost) {
+  console.log('starting dump')
   let res = yield exec('mongodump', ['-h', dbHost])
   if (res.code !== 0) throw Error('error while running mongodump')
 
+  console.log('starting compression of backup files')
   res = yield exec('tar', ['-cvzf', 'backup.tar.gz', 'dump'])
   if (res.code !== 0) throw Error('error while running tar')
 
@@ -23,6 +25,7 @@ function uploadBackupToS3 (dbHost, path) {
   })
 
   return new Promise((resolve, reject) => {
+    console.log('starting upload to S3')
     s3.upload({
       Bucket: process.env.AWS_BUCKET,
       Key: `${dbHost}-${(new Date()).toString()}.tar.gz`,
@@ -47,9 +50,11 @@ function * main () {
       } catch (err) {
         console.error(err)
       }
+
+      console.log('done')
     }
 
-    yield wait(ms('1h'))
+    yield wait(ms('6h'))
   }
 }
 
