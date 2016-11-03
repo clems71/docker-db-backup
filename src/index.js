@@ -3,11 +3,13 @@ const AWS = require('aws-sdk')
 const co = require('co')
 const exec = require('teen_process').exec
 const fs = require('fs')
+const fse = require('co-fs-extra')
 const ms = require('ms')
 const wait = require('co-wait')
 
 function * backupDb (dbHost) {
   console.log('starting dump')
+  yield fse.emptyDir('dump')
   let res = yield exec('mongodump', ['-h', dbHost, '--gzip'])
   if (res.code !== 0) throw Error('error while running mongodump')
 
