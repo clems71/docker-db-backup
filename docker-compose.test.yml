@@ -1,0 +1,17 @@
+version: "2"
+services:
+  mysql:
+    image: mysql:latest
+    environment:
+      - MYSQL_ROOT_PASSWORD=12345
+  mongodb:
+    image: mongo:latest
+  sut:
+    build: .
+    links:
+      - mysql:db1
+      - mongodb:db2
+    volumes:
+      - ./src:/srv/src
+      - ./test:/srv/test
+    command: test
