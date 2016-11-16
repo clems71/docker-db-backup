@@ -1,7 +1,7 @@
-/* global describe it before after */
+/* global describe it before */
 
 const api = require('../src/backup')
-const mysql = require('mysql')
+const mysql = require('mysql2/promise')
 const fs = require('fs')
 const mongoc = require('mongodb').MongoClient
 
@@ -61,17 +61,16 @@ describe('backupDb url test', function () {
 describe('backupDb test', function () {
   describe('backup mysql', function () {
     before(function * () {
-      let client = mysql.createConnection({
+      let client = yield mysql.createConnection({
         host: 'mysql',
         user: 'root',
         password: '12345'
       })
-      client.query('DROP DATABASE IF EXISTS testbase')
-      client.query('CREATE DATABASE testbase')
-      client.changeUser({database: 'testbase'})
-      client.query('CREATE TABLE test (id INT,data VARCHAR(100))')
-      client.query('INSERT INTO test VALUES (?),(?)', [[`0`, `foo`], [`1`, `bar`]])
-      client.end()
+      yield client.query('DROP DATABASE IF EXISTS testbase')
+      yield client.query('CREATE DATABASE testbase')
+      yield client.query('USE testbase')
+      yield client.query('CREATE TABLE test (id INT,data VARCHAR(100))')
+      yield client.query('INSERT INTO test VALUES (?),(?)', [[`0`, `foo`], [`1`, `bar`]])
     })
 
     it('is done', function * () {
@@ -85,7 +84,8 @@ describe('backupDb test', function () {
       }
       raised.should.equal(false)
       let stats = fs.statSync(backupInfo.file)
-      let fileSizeInBytes = stats['size']
+      let fileSizeInBytes = stats.size
+      console.log(fileSizeInBytes)
       fileSizeInBytes.should.greaterThan(400 * 1024)
     })
   })
