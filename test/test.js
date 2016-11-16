@@ -47,7 +47,6 @@ describe('backupDb url test', function () {
 
   describe('invalid mongodb database host', function () {
     it('sould throw an exception', function * () {
-      this.timeout(15000)
       let raised = false
       try {
         yield api.backupDb('mongodb://test')
@@ -84,7 +83,6 @@ describe('backupDb test', function () {
     })
 
     it('is done', function * () {
-      this.timeout(15000)
       let raised = false
       let backupInfo
       try {
@@ -113,7 +111,6 @@ describe('backupDb test', function () {
     })
 
     it('is done', function * () {
-      this.timeout(15000)
       let raised = false
       let backupInfo
       try {

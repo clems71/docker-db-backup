@@ -6,7 +6,7 @@
   "scripts": {
     "start": "node src/index.js",
     "debug": "nodemon src/index.js",
-    "test": "mocha -r should -r co-mocha"
+    "test": "mocha -r should -r co-mocha -t 15000"
   },
   "author": "",
   "license": "ISC",
