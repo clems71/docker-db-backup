@@ -1,24 +1,11 @@
 const _ = require('lodash')
 const AWS = require('aws-sdk')
 const co = require('co')
-const exec = require('teen_process').exec
 const fs = require('fs')
-const fse = require('co-fs-extra')
 const ms = require('ms')
 const wait = require('co-wait')
 
-function * backupDb (dbHost) {
-  console.log('starting dump')
-  yield fse.emptyDir('dump')
-  let res = yield exec('mongodump', ['-h', dbHost, '--gzip'])
-  if (res.code !== 0) throw Error('error while running mongodump')
-
-  console.log('starting compression of backup files')
-  res = yield exec('tar', ['-cf', 'backup.tar', 'dump'])
-  if (res.code !== 0) throw Error('error while running tar')
-
-  return 'backup.tar'
-}
+const backup = require('./backup')
 
 function uploadBackupToS3 (dbHost, path) {
   const s3 = new AWS.S3({
@@ -40,19 +27,16 @@ function uploadBackupToS3 (dbHost, path) {
 }
 
 function * main () {
-  const dbHosts = _.split(process.env.BACKUP_HOSTS, ',')
+  const dbUrls = _.split(process.env.BACKUP_URLS, ',')
 
   while (true) {
-    for (const dbHost of dbHosts) {
-      console.log(`backup of ${dbHost}`)
-
+    for (const dbUrl of dbUrls) {
       try {
-        const backupFile = yield backupDb(dbHost)
-        yield uploadBackupToS3(dbHost, backupFile)
+        let backupInfo = yield backup.backupDb(dbUrl)
+        yield uploadBackupToS3(backupInfo.host, backupInfo.file)
       } catch (err) {
         console.error(err)
       }
-
       console.log('done')
     }
 
