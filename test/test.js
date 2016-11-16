@@ -1,11 +1,12 @@
 /* global describe it before */
+'use strict'
 
-const api = require('../src/backup')
-const mysql = require('mysql2/promise')
 const fs = require('fs')
 const mongoc = require('mongodb').MongoClient
+const mysql = require('mysql2/promise')
+const wait = require('co-wait')
 
-'use strict'
+const api = require('../src/backup')
 
 describe('backupDb url test', function () {
   describe('empty url ', function () {
@@ -58,10 +59,19 @@ describe('backupDb url test', function () {
   })
 })
 
+function * mysqlConnect (opts) {
+  for (let i = 0; i < 10; i++) {
+    try {
+      return yield mysql.createConnection(opts)
+    } catch (err) { }
+    yield wait(1500)
+  }
+}
+
 describe('backupDb test', function () {
   describe('backup mysql', function () {
     before(function * () {
-      let client = yield mysql.createConnection({
+      const client = yield mysqlConnect({
         host: 'mysql',
         user: 'root',
         password: '12345'
@@ -85,8 +95,7 @@ describe('backupDb test', function () {
       raised.should.equal(false)
       let stats = fs.statSync(backupInfo.file)
       let fileSizeInBytes = stats.size
-      console.log(fileSizeInBytes)
-      fileSizeInBytes.should.greaterThan(400 * 1024)
+      fileSizeInBytes.should.greaterThan(40 * 1024)
     })
   })
 
