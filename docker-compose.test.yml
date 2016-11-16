@@ -5,12 +5,12 @@ services:
     environment:
       - MYSQL_ROOT_PASSWORD=12345
   mongodb:
-    image: mongo:latest
+    image: mvertes/alpine-mongo
   sut:
     build: .
     links:
-      - mysql:db1
-      - mongodb:db2
+      - mysql
+      - mongodb
     volumes:
       - ./src:/srv/src
       - ./test:/srv/test
