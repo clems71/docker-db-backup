@@ -24,14 +24,14 @@ function upload (s3, bucket, srcFilePath) {
   })
 }
 
-exports.upload = function * (name, filePath) {
+exports.upload = function * (filePath) {
   const bucket = process.env.AWS_BUCKET
   const s3 = new AWS.S3({
     accessKeyId: process.env.AWS_ACCESS_KEY,
     secretAccessKey: process.env.AWS_SECRET_KEY
   })
 
-  console.log(`starting ${name} upload to S3 bucket ${bucket}`)
+  console.log(`starting ${path.basename(filePath)} upload to S3 bucket ${bucket}`)
 
   const vEnabled = yield isVersioningEnabled(s3, bucket)
   if (!vEnabled) throw Error('this bucket does not support versionning, please enable it and restart')
