@@ -3,7 +3,7 @@ const fse = require('co-fs-extra')
 
 exports.file = function * (filename, url) {
   yield fse.ensureDir(url.pathname)
-  yield exec('tar', ['-xzf', filename, '-C', url.pathname, '--strip-components', '2'])
+  yield exec('tar', ['-xzf', filename, '-C', url.pathname, '--strip-components', '1'])
 }
 
 exports.mongodb = function * (filename, url) {
