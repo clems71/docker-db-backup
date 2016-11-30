@@ -1,9 +1,7 @@
 version: "2"
 services:
   mysql:
-    image: mysql:latest
-    environment:
-      - MYSQL_ROOT_PASSWORD=12345
+    image: imega/mysql
   mongodb:
     image: mvertes/alpine-mongo
   sut:

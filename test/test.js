@@ -1,62 +1,13 @@
 /* global describe it before */
 'use strict'
 
+const _ = require('lodash')
 const fs = require('fs')
-const mongoc = require('mongodb').MongoClient
+const MongoClient = require('mongodb').MongoClient
 const mysql = require('mysql2/promise')
 const wait = require('co-wait')
 
-const api = require('../src/backup')
-
-describe('backupDb url test', function () {
-  describe('empty url ', function () {
-    it('sould throw an exception', function * () {
-      let raised = false
-      try {
-        yield api.backupDb('')
-      } catch (err) {
-        raised = true
-      }
-      raised.should.equal(true)
-    })
-  })
-
-  describe('wrong url', function () {
-    it('sould throw an exception', function * () {
-      let raised = false
-      try {
-        yield api.backupDb('foobar')
-      } catch (err) {
-        raised = true
-      }
-      raised.should.equal(true)
-    })
-  })
-
-  describe('not supported database format', function () {
-    it('sould throw an exception', function * () {
-      let raised = false
-      try {
-        yield api.backupDb('mariadb://user:pass@host')
-      } catch (err) {
-        raised = true
-      }
-      raised.should.equal(true)
-    })
-  })
-
-  describe('invalid mongodb database host', function () {
-    it('sould throw an exception', function * () {
-      let raised = false
-      try {
-        yield api.backupDb('mongodb://test')
-      } catch (err) {
-        raised = true
-      }
-      raised.should.equal(true)
-    })
-  })
-})
+const dump = require('../src/dump-to-file').dump
 
 function * mysqlConnect (opts) {
   for (let i = 0; i < 10; i++) {
@@ -67,61 +18,118 @@ function * mysqlConnect (opts) {
   }
 }
 
-describe('backupDb test', function () {
-  describe('backup mysql', function () {
-    before(function * () {
-      const client = yield mysqlConnect({
-        host: 'mysql',
-        user: 'root',
-        password: '12345'
-      })
-      yield client.query('DROP DATABASE IF EXISTS testbase')
-      yield client.query('CREATE DATABASE testbase')
-      yield client.query('USE testbase')
-      yield client.query('CREATE TABLE test (id INT,data VARCHAR(100))')
-      yield client.query('INSERT INTO test VALUES (?),(?)', [[`0`, `foo`], [`1`, `bar`]])
-    })
+before(function * () {
+  this.db = {
+    mongodb: yield MongoClient.connect('mongodb://mongodb'),
+    mysql: yield mysqlConnect({ host: 'mysql' })
+  }
+})
 
-    it('is done', function * () {
-      let raised = false
-      let backupInfo
-      try {
-        backupInfo = yield api.backupDb('mysql://root:12345@mysql')
-      } catch (err) {
-        raised = true
-      }
-      raised.should.equal(false)
-      let stats = fs.statSync(backupInfo.file)
-      let fileSizeInBytes = stats.size
-      fileSizeInBytes.should.greaterThan(40 * 1024)
-    })
+describe('dump url', function () {
+  it('empty url sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
   })
 
-  describe('backup mongodb', function () {
-    before(function * () {
-      let db = yield mongoc.connect('mongodb://mongodb')
+  it('invalid url sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('foobar')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
+  })
 
-      try {
-        yield db.collection('test').drop()
-      } catch (err) {}
-      yield db.collection('test').insertMany(
-        [{a: 0, b: 'foo'},
-        {a: 1, b: 'bar'}])
-      db.close()
-    })
+  it('not supported scheme sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('mariadb://user:pass@host')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
+  })
 
-    it('is done', function * () {
-      let raised = false
-      let backupInfo
-      try {
-        backupInfo = yield api.backupDb('mongodb://mongodb')
-      } catch (err) {
-        raised = true
-      }
-      raised.should.equal(false)
-      let stats = fs.statSync(backupInfo.file)
-      let fileSizeInBytes = stats['size']
-      fileSizeInBytes.should.greaterThan(1600)
-    })
+  it('bad directory for `file` sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('file:///unknown-dir?dumpName=dumpfile')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
+  })
+
+  it('bad host for `mongodb` sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('mongodb://test')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
+  })
+
+  it('bad host for `mysql` sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('mysql://test')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
+  })
+})
+
+const FAKE_DATA = _.times(2000, _id => {
+  return {
+    _id,
+    data: 'this is the dummy data!'
+  }
+})
+
+describe('dump local directory', function () {
+  it('works properly', function * () {
+    const file = yield dump(`file://${__dirname}?dumpName=test-dir-backup`)
+    let stats = fs.statSync(file)
+    stats.size.should.greaterThan(128)
+  })
+})
+
+describe('dump MongoDB', function () {
+  before(function * () {
+    try {
+      yield this.db.mongodb.collection('test').drop()
+    } catch (err) {}
+    yield this.db.mongodb.collection('test').insertMany(FAKE_DATA)
+  })
+
+  it('works properly', function * () {
+    const file = yield dump('mongodb://mongodb')
+    let stats = fs.statSync(file)
+    stats.size.should.greaterThan(1600)
+  })
+})
+
+describe('dump MySQL', function () {
+  before(function * () {
+    const db = this.db.mysql
+    yield db.query('DROP DATABASE IF EXISTS testbase')
+    yield db.query('CREATE DATABASE testbase')
+    yield db.query('USE testbase')
+    yield db.query('CREATE TABLE test (id INT, data VARCHAR(100))')
+    yield db.query('INSERT INTO test (id, data) VALUES ?', [_.map(FAKE_DATA, x => [x._id, x.data])])
+  })
+
+  it('works properly', function * () {
+    const file = yield dump('mysql://mysql')
+    let stats = fs.statSync(file)
+    stats.size.should.greaterThan(1600)
   })
 })

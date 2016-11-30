@@ -9,6 +9,8 @@ RUN \
 RUN apk add --no-cache mysql-client
 RUN apk add --no-cache nodejs
 
+RUN apk add --no-cache ca-certificates && update-ca-certificates
+
 COPY package.json .
 RUN npm i
 
