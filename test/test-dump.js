@@ -7,7 +7,7 @@ const MongoClient = require('mongodb').MongoClient
 const mysql = require('mysql2/promise')
 const wait = require('co-wait')
 
-const dump = require('../src/dump-to-file').dump
+const {dump, restore} = require('../src/dump-to-file')
 
 function * mysqlConnect (opts) {
   for (let i = 0; i < 10; i++) {
@@ -90,15 +90,24 @@ describe('dump url', function () {
 const FAKE_DATA = _.times(2000, _id => {
   return {
     _id,
-    data: 'this is the dummy data!'
+    data: `this is the dummy data with id = ${_id}`
   }
 })
 
 describe('dump local directory', function () {
-  it('works properly', function * () {
+  it('dump properly', function * () {
     const file = yield dump(`file://${__dirname}?dumpName=test-dir-backup`)
     let stats = fs.statSync(file)
     stats.size.should.greaterThan(128)
+  })
+
+  it('restore properly', function * () {
+    const restoredDir = `${__dirname}.restored`
+    const dumpFile = yield dump(`file://${__dirname}?dumpName=test-dir-backup`)
+    yield restore(dumpFile, `file://${restoredDir}`)
+    const origContent = fs.readFileSync(__filename)
+    const restoredContent = fs.readFileSync(`${restoredDir}/test-dump.js`)
+    _.isEqual(origContent, restoredContent).should.be.ok()
   })
 })
 
@@ -110,10 +119,19 @@ describe('dump MongoDB', function () {
     yield this.db.mongodb.collection('test').insertMany(FAKE_DATA)
   })
 
-  it('works properly', function * () {
+  it('dump properly', function * () {
     const file = yield dump('mongodb://mongodb')
     let stats = fs.statSync(file)
     stats.size.should.greaterThan(1600)
+  })
+
+  it('restore properly', function * () {
+    const file = yield dump('mongodb://mongodb')
+    yield this.db.mongodb.collection('test').drop();
+    (yield this.db.mongodb.collection('test').count()).should.equal(0)
+    yield restore(file, 'mongodb://mongodb')
+    const data = yield this.db.mongodb.collection('test').find().toArray()
+    _.isEqual(FAKE_DATA, data).should.be.ok()
   })
 })
 

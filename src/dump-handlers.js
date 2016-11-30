@@ -1,10 +1,19 @@
 const _ = require('lodash')
 const exec = require('teen_process').exec
 const fse = require('co-fs-extra')
+const fs = require('fs')
 
 exports.file = function * (url, filename) {
-  filename = `${filename}.tar.gz`
-  yield exec('tar', ['-czf', filename, url.pathname])
+  const srcPath = url.pathname
+  const srcStats = fs.statSync(srcPath)
+
+  if (srcStats.isDirectory()) {
+    filename = `${filename}.tar.gz`
+    yield exec('tar', ['-czf', filename, srcPath])
+  } else {
+    throw Error(`${srcPath} is not a directory`)
+  }
+
   return filename
 }
 

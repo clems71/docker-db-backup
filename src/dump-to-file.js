@@ -2,6 +2,7 @@ const _ = require('lodash')
 const parseUrl = require('url').parse
 
 const dumpHandlers = require('./dump-handlers')
+const restoreHandlers = require('./restore-handlers')
 
 exports.dump = function * (srcUrl) {
   const url = parseUrl(srcUrl, true)
@@ -20,7 +21,7 @@ exports.dump = function * (srcUrl) {
 
   // Try to find a proper dump handler
   const handler = dumpHandlers[scheme]
-  if (!handler) throw Error(`${scheme} not handled by backup function`)
+  if (!handler) throw Error(`${scheme} not handled by dump function`)
 
   // Found one, process then
   const outFileName = yield handler(url, dumpName)
@@ -28,4 +29,24 @@ exports.dump = function * (srcUrl) {
   // Done!
   console.log(`→ done`)
   return outFileName
+}
+
+exports.restore = function * (srcDumpFile, dstUrl) {
+  const url = parseUrl(dstUrl, true)
+  if (!url) throw Error(`${dstUrl} is not a valid url`)
+
+  // Extract the scheme
+  const scheme = url.protocol.slice(0, -1)
+
+  console.log(`starting ${srcDumpFile} restoration [${scheme}] ...`)
+
+  // Try to find a proper restore handler
+  const handler = restoreHandlers[scheme]
+  if (!handler) throw Error(`${scheme} not handled by restore function`)
+
+  // Found one, process then
+  yield handler(srcDumpFile, url)
+
+  // Done!
+  console.log(`→ done`)
 }
