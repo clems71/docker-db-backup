@@ -24,6 +24,20 @@ function upload (s3, bucket, srcFilePath) {
   })
 }
 
+function download (s3, bucket, filePath) {
+  const stream = s3.getObject({
+    Bucket: bucket,
+    Key: filePath
+  })
+  .createReadStream()
+
+  return new Promise((resolve, reject) => {
+    stream.on('end', resolve)
+    stream.on('error', reject)
+    stream.pipe(fs.createWriteStream(path.basename(filePath)))
+  })
+}
+
 exports.upload = function * (filePath) {
   const bucket = process.env.AWS_BUCKET
   const s3 = new AWS.S3({
@@ -37,4 +51,17 @@ exports.upload = function * (filePath) {
   if (!vEnabled) throw Error('this bucket does not support versionning, please enable it and restart')
   yield upload(s3, bucket, filePath)
   console.log(`→ done`)
+}
+
+exports.download = function * (filePath) {
+  const bucket = process.env.AWS_BUCKET
+  const s3 = new AWS.S3({
+    accessKeyId: process.env.AWS_ACCESS_KEY,
+    secretAccessKey: process.env.AWS_SECRET_KEY
+  })
+
+  console.log(`starting ${filePath} download from S3 bucket ${bucket}`)
+  yield download(s3, bucket, filePath)
+  console.log(`→ done`)
+  return path.basename(filePath)
 }
