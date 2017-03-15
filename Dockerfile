@@ -4,12 +4,7 @@ WORKDIR /srv
 
 RUN \
   echo http://dl-4.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
-  apk add --no-cache mongodb-tools
-
-RUN apk add --no-cache mysql-client
-RUN apk add --no-cache nodejs
-
-RUN apk add --no-cache ca-certificates && update-ca-certificates
+  apk add --no-cache mongodb-tools mysql-client nodejs nodejs-npm
 
 COPY package.json .
 RUN npm i
