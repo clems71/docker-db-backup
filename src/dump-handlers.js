@@ -37,3 +37,13 @@ exports.mysql = function * (url, filename) {
   yield exec('tar', ['-czf', filename, 'dump'])
   return filename
 }
+
+exports.postgres = function * (url, filename) {
+  filename = `${filename}.tar.gz`
+  const basename =url.pathname.slice(1)
+  const [user] = _.split(url.auth, ':')
+  yield fse.emptyDir('dump')
+  yield exec('pg_dump', ['-h', url.host, '-U', user, '-W','-f', 'dump/dump', basename])
+  yield exec('tar', ['-czf', filename, 'dump'])
+  return filename
+}

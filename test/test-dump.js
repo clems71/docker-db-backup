@@ -6,6 +6,7 @@ const fs = require('fs')
 const MongoClient = require('mongodb').MongoClient
 const mysql = require('mysql2/promise')
 const wait = require('co-wait')
+const pgp = require('pg-promise')()
 
 const {dump, restore} = require('../src/dump-to-file')
 
@@ -19,9 +20,11 @@ function * mysqlConnect (opts) {
 }
 
 before(function * () {
+  // const postgresDb = pgp('postgres://postgres@postgres/testbase')
   this.db = {
     mongodb: yield MongoClient.connect('mongodb://mongodb'),
     mysql: yield mysqlConnect({ host: 'mysql' })
+    // postgresql: yield postgresDb.connect()
   }
 })
 
@@ -147,6 +150,37 @@ describe('dump MySQL', function () {
 
   it('works properly', function * () {
     const file = yield dump('mysql://mysql')
+    let stats = fs.statSync(file)
+    stats.size.should.greaterThan(1600)
+  })
+})
+describe('dump Postgres', function () {
+  before(function * () {
+    const postgresDb = pgp('postgres://postgres:secret@postgres/testbase')
+    this.db = {
+      postgresql: yield postgresDb.connect()
+    }
+    // console.log(_.map(FAKE_DATA, x => [x._id, x.data]))
+    // console.log(_.map(FAKE_DATA, x => x._id))
+    // console.log(  _.map(FAKE_DATA, x => x._id),_.map(FAKE_DATA, x =>x.data))
+    const db = this.db.postgresql
+    yield db.query('drop table if exists test')
+
+    yield db.query('create table test (id INT, data VARCHAR(100))')
+
+    const data = _.map(FAKE_DATA, x => [x._id, x.data])
+    // for (let x of data) {
+    //   yield db.query('insert into test(id, data) values($1,$2)', x)
+    // }
+    yield _.map(data, x => {
+      // db.query('insert into test(id, data) values($1,$2)', [x[0],x[1]])
+      db.query('insert into test(id, data) values($1,$2)', x)
+    })
+    const res = yield db.query('SELECT * FROM test')
+    console.log(res)
+  })
+  it('it works', function * () {
+    const file = yield dump ('postgres://postgres:secret@postgres/testbase')
     let stats = fs.statSync(file)
     stats.size.should.greaterThan(1600)
   })
