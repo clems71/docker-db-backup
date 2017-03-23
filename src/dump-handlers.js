@@ -40,10 +40,11 @@ exports.mysql = function * (url, filename) {
 
 exports.postgres = function * (url, filename) {
   filename = `${filename}.tar.gz`
-  const basename =url.pathname.slice(1)
-  const [user] = _.split(url.auth, ':')
-  yield fse.emptyDir('dump')
-  yield exec('pg_dump', ['-h', url.host, '-U', user, '-W','-f', 'dump/dump', basename])
+  const dbname = url.pathname.replace('/', '')
+  const [user, pass] = _.split(url.auth, ':')
+  yield fse.writeFile('.pgpass', `${url.host}:5432:${dbname}:${user}:${pass}`)
+  yield fse.chmod('.pgpass', 0o600)
+  yield exec('pg_dump', ['-h', url.host, '-U', user, '-w', '-f', 'dump/dump.sql', dbname])
   yield exec('tar', ['-czf', filename, 'dump'])
   return filename
 }

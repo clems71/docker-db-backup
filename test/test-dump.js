@@ -20,11 +20,9 @@ function * mysqlConnect (opts) {
 }
 
 before(function * () {
-  // const postgresDb = pgp('postgres://postgres@postgres/testbase')
   this.db = {
     mongodb: yield MongoClient.connect('mongodb://mongodb'),
     mysql: yield mysqlConnect({ host: 'mysql' })
-    // postgresql: yield postgresDb.connect()
   }
 })
 
@@ -83,6 +81,16 @@ describe('dump url', function () {
     let raised = false
     try {
       yield dump('mysql://test')
+    } catch (err) {
+      raised = true
+    }
+    raised.should.equal(true)
+  })
+
+  it('bad host for `postgres` sould throw an exception', function * () {
+    let raised = false
+    try {
+      yield dump('postgres://test')
     } catch (err) {
       raised = true
     }
@@ -154,34 +162,34 @@ describe('dump MySQL', function () {
     stats.size.should.greaterThan(1600)
   })
 })
+
 describe('dump Postgres', function () {
   before(function * () {
     const postgresDb = pgp('postgres://postgres:secret@postgres/testbase')
     this.db = {
       postgresql: yield postgresDb.connect()
     }
-    // console.log(_.map(FAKE_DATA, x => [x._id, x.data]))
-    // console.log(_.map(FAKE_DATA, x => x._id))
-    // console.log(  _.map(FAKE_DATA, x => x._id),_.map(FAKE_DATA, x =>x.data))
     const db = this.db.postgresql
-    yield db.query('drop table if exists test')
-
-    yield db.query('create table test (id INT, data VARCHAR(100))')
-
-    const data = _.map(FAKE_DATA, x => [x._id, x.data])
-    // for (let x of data) {
-    //   yield db.query('insert into test(id, data) values($1,$2)', x)
-    // }
-    yield _.map(data, x => {
-      // db.query('insert into test(id, data) values($1,$2)', [x[0],x[1]])
-      db.query('insert into test(id, data) values($1,$2)', x)
+    yield db.query('DROP TABLE IF EXISTS test')
+    yield db.query('CREATE TABLE test (_id INT, data VARCHAR(100))')
+    yield _.map(FAKE_DATA, x => {
+      db.query('INSERT INTO test( _id, data ) values($1,$2)', [x._id, x.data])
+      console.log()
     })
     const res = yield db.query('SELECT * FROM test')
     console.log(res)
   })
-  it('it works', function * () {
-    const file = yield dump ('postgres://postgres:secret@postgres/testbase')
+  it('dump properly', function * () {
+    const file = yield dump('postgres://postgres:secret@postgres/testbase')
     let stats = fs.statSync(file)
     stats.size.should.greaterThan(1600)
+  })
+  it('restore properly', function * () {
+    const file = yield dump('postgres://postgres:secret@postgres/testbase')
+    const db = this.db.postgresql
+    yield db.query('DROP TABLE test')
+    yield restore(file, 'postgres://postgres:secret@postgres/testbase')
+    const data = _.map(yield db.any('SELECT * from test'), _.toPlainObject)
+    FAKE_DATA.should.be.deepEqual(data)
   })
 })
