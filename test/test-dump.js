@@ -172,18 +172,17 @@ describe('dump Postgres', function () {
     const db = this.db.postgresql
     yield db.query('DROP TABLE IF EXISTS test')
     yield db.query('CREATE TABLE test (_id INT, data VARCHAR(100))')
-    yield _.map(FAKE_DATA, x => {
-      db.query('INSERT INTO test( _id, data ) values($1,$2)', [x._id, x.data])
-      console.log()
-    })
-    const res = yield db.query('SELECT * FROM test')
-    console.log(res)
+    for (let entry of FAKE_DATA) {
+      yield db.query('INSERT INTO test( _id, data ) values($1,$2)', [entry._id, entry.data])
+    }
   })
+
   it('dump properly', function * () {
     const file = yield dump('postgres://postgres:secret@postgres/testbase')
     let stats = fs.statSync(file)
     stats.size.should.greaterThan(1600)
   })
+
   it('restore properly', function * () {
     const file = yield dump('postgres://postgres:secret@postgres/testbase')
     const db = this.db.postgresql
