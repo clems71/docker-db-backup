@@ -10,19 +10,13 @@ exports.dump = function * (srcUrl) {
 
   // Try to extract a proper dump name from URL
   // we support either a query param named `dumpName` or we fallback on url hostname
-  console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
-console.log(url)
+
   const host = _.get(url, 'host')
   const dumpName = _.get(url, 'query.dumpName', host)
   if (!dumpName) throw Error(`cannot determine a proper dumpName from url ${srcUrl}`)
 
   // Extract the scheme
   const scheme = url.protocol.slice(0, -1)
-  console.log('XXXXXXXXXXXXXXXXXXXXXXXXX')
-  console.log(scheme)
-  console.log('XXXXXXXXXXXXXXXXXXXXXXXXX')
-
-
   console.log(`starting ${dumpName} dump [${scheme}] ...`)
 
   // Try to find a proper dump handler
@@ -31,7 +25,6 @@ console.log(url)
 
   // Found one, process then
   const outFileName = yield handler(url, dumpName)
-
 
   // Done!
   console.log(`→ done`)
