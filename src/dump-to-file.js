@@ -16,7 +16,6 @@ exports.dump = function * (srcUrl) {
 
   // Extract the scheme
   const scheme = url.protocol.slice(0, -1)
-
   console.log(`starting ${dumpName} dump [${scheme}] ...`)
 
   // Try to find a proper dump handler

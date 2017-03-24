@@ -4,11 +4,14 @@ services:
     image: imega/mysql
   mongodb:
     image: mvertes/alpine-mongo
+  postgres:
+    image: postgres
   sut:
     build: .
     links:
       - mysql
       - mongodb
+      - postgres
     volumes:
       - ./src:/srv/src
       - ./test:/srv/test
