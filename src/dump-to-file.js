@@ -10,7 +10,6 @@ exports.dump = function * (srcUrl) {
 
   // Try to extract a proper dump name from URL
   // we support either a query param named `dumpName` or we fallback on url hostname
-
   const host = _.get(url, 'host')
   const dumpName = _.get(url, 'query.dumpName', host)
   if (!dumpName) throw Error(`cannot determine a proper dumpName from url ${srcUrl}`)

@@ -14,7 +14,6 @@ exports.file = function * (url, filename) {
   } else {
     throw Error(`${srcPath} is not a directory`)
   }
-
   return filename
 }
 
@@ -37,14 +36,17 @@ exports.mysql = function * (url, filename) {
   yield exec('tar', ['-czf', filename, 'dump'])
   return filename
 }
-
+// Back up a PostgreSQL database in a file call dump.sql, create an archive and compress it
 exports.postgres = function * (url, filename) {
+  console.log('>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>>')
+  console.log(url)
   filename = `${filename}.tar.gz`
   const dbname = url.pathname.replace('/', '')
   const [user, pass] = _.split(url.auth, ':')
-  yield fse.writeFile('.pgpass', `${url.host}:5432:${dbname}:${user}:${pass}`)
+  const [host, port] = _.split(url.host, ':')
+  yield fse.writeFile('.pgpass', `${host}:${port}:${dbname}:${user}:${pass}`)
   yield fse.chmod('.pgpass', 0o600)
-  yield exec('pg_dump', ['-h', url.host, '-U', user, '-w', '-f', 'dump/dump.sql', dbname])
+  yield exec('pg_dump', ['-h', host, '-p', port, '-U', user, '-w', '-f', 'dump/dump.sql', dbname])
   yield exec('tar', ['-czf', filename, 'dump'])
   return filename
 }

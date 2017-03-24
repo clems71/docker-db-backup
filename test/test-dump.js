@@ -86,7 +86,6 @@ describe('dump url', function () {
     }
     raised.should.equal(true)
   })
-
   it('bad host for `postgres` sould throw an exception', function * () {
     let raised = false
     try {
@@ -162,13 +161,14 @@ describe('dump MySQL', function () {
     stats.size.should.greaterThan(1600)
   })
 })
-
 describe('dump Postgres', function () {
   before(function * () {
-    const postgresDb = pgp('postgres://postgres:secret@postgres/testbase')
+    // Create a new databe with a table and fill it with fake datas
+    const postgresDb = pgp('postgres://postgres:secret@postgres:5432/testbase')
     this.db = {
       postgresql: yield postgresDb.connect()
     }
+
     const db = this.db.postgresql
     yield db.query('DROP TABLE IF EXISTS test')
     yield db.query('CREATE TABLE test (_id INT, data VARCHAR(100))')
@@ -176,18 +176,18 @@ describe('dump Postgres', function () {
       yield db.query('INSERT INTO test( _id, data ) values($1,$2)', [entry._id, entry.data])
     }
   })
-
+  // Dump the database in a new file and check if something had been dumped
   it('dump properly', function * () {
-    const file = yield dump('postgres://postgres:secret@postgres/testbase')
+    const file = yield dump('postgres://postgres:secret@postgres:5432/testbase')
     let stats = fs.statSync(file)
-    stats.size.should.greaterThan(1600)
+    stats.size.should.be.greaterThan(1600)
   })
-
+  // Dump the database in order to restore it and check if the datas dumped are equal to the fake datas used to filled the table in the before
   it('restore properly', function * () {
-    const file = yield dump('postgres://postgres:secret@postgres/testbase')
+    const file = yield dump('postgres://postgres:secret@postgres:5432/testbase')
     const db = this.db.postgresql
     yield db.query('DROP TABLE test')
-    yield restore(file, 'postgres://postgres:secret@postgres/testbase')
+    yield restore(file, 'postgres://postgres:secret@postgres:5432/testbase')
     const data = _.map(yield db.any('SELECT * from test'), _.toPlainObject)
     FAKE_DATA.should.be.deepEqual(data)
   })
