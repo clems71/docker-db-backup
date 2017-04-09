@@ -2,16 +2,17 @@ FROM alpine:edge
 
 WORKDIR /srv
 
-RUN \
-  echo http://dl-4.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
-  apk add --no-cache mongodb-tools mysql-client nodejs nodejs-npm yarn
-
 COPY package.json .
 COPY yarn.lock .
-RUN yarn
+
+RUN \
+  echo http://dl-4.alpinelinux.org/alpine/edge/testing >> /etc/apk/repositories && \
+  apk add --no-cache mongodb-tools mysql-client nodejs nodejs-npm yarn lz4 && \
+  yarn && \
+  rm -rf /var/cache/apk/*
 
 COPY src src
 COPY test test
 
-ENTRYPOINT [ "yarn" ]
+ENTRYPOINT ["yarn"]
 CMD ["start"]

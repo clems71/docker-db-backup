@@ -19,8 +19,8 @@
     "handlebars": "^4.0.6",
     "lodash": "^4.16.6",
     "ms": "^0.7.2",
-    "sendmail": "^1.1.1",
-    "teen_process": "^1.6.2"
+    "pshell": "^1.1.0",
+    "sendmail": "^1.1.1"
   },
   "devDependencies": {
     "co-mocha": "^1.1.3",
