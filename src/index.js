@@ -1,6 +1,7 @@
 const _ = require('lodash');
 const co = require('co');
 const fs = require('fs');
+const fse = require('co-fs-extra');
 const handlebars = require('handlebars');
 const ms = require('ms');
 const path = require('path');
@@ -13,9 +14,11 @@ const sendmail = require('./sendmail');
 const PERIOD = '6h';
 
 function* backup(srcUrl) {
+  yield fse.emptyDir('./workdir');
+
   // Perform the DB dump
   const t0 = _.now();
-  const dumpFile = yield dump(srcUrl);
+  const dumpFile = yield dump(srcUrl, { outDir: './workdir' });
   const stat = fs.statSync(dumpFile);
 
   // Upload to S3

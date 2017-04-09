@@ -4,7 +4,10 @@ const parseUrl = require('url').parse;
 const dumpHandlers = require('./dump-handlers');
 const restoreHandlers = require('./restore-handlers');
 
-exports.dump = function*(srcUrl) {
+exports.dump = function*(srcUrl, opts) {
+  opts = _.defaults(opts, {
+    outDir: '.'
+  });
   const url = parseUrl(srcUrl, true);
   if (!url) throw Error(`${srcUrl} is not a valid url`);
 
@@ -25,7 +28,7 @@ exports.dump = function*(srcUrl) {
   if (!handler) throw Error(`${scheme} not handled by dump function`);
 
   // Found one, process then
-  const outFileName = yield handler(url, dumpName);
+  const outFileName = yield handler(url, `${opts.outDir}/${dumpName}`);
 
   // Done!
   console.log(`→ done`);
