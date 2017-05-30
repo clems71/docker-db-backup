@@ -6,6 +6,7 @@
   "scripts": {
     "precommit": "lint-staged",
     "start": "node src/index.js",
+    "start-low-mem": "node --optimize_for_size --max_old_space_size=460 --gc_interval=100 src/index.js",
     "restore": "node src/cli.js",
     "test": "mocha -r should -r co-mocha -t 15000"
   },
